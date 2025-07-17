@@ -1,12 +1,12 @@
 from bottle import Bottle, run, template, request, redirect, static_file
-from bottle_sessions import SessionsPlugin
+from bottle_session import SessionPlugin
 from db import init_db, get_db
 import auth, json
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 
 app = Bottle()
-app.install(SessionsPlugin(secret="SECRET_KEY", cookie_lifetime=86400, path="/", httponly=True))
+app.install(SessionPlugin(secret="SECRET_KEY", cookie_lifetime=86400, path="/", httponly=True))
 init_db()
 
 connected = {}
