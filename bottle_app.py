@@ -1,14 +1,16 @@
-from bottle import Bottle, template, request, redirect, response, static_file, error
+from flask import Flask, render_template, request, redirect, url_for, Response, session, send_from_directory
+from flask_socketio import SocketIO, join_room, emit
 import sqlite3
 import hashlib
 import os
 from werkzeug.utils import secure_filename
-import socketio
 
-# Create Bottle instance for HTTP routes
-bottle_app = Bottle()
-sio = socketio.Server()
-SECRET = "supersecretkey"
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'supersecretkey'
+socketio = SocketIO(app)
+
+UPLOAD_FOLDER = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # --- DB Setup ---
 def get_db():
@@ -19,12 +21,13 @@ def get_db():
 def init_db():
     db = get_db()
     c = db.cursor()
-
-    # Create tables if they don't exist
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL)''')
+        password TEXT NOT NULL,
+        profile_pic TEXT,
+        theme TEXT DEFAULT 'light',
+        is_admin INTEGER DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender_id INTEGER NOT NULL,
@@ -44,17 +47,6 @@ def init_db():
         FOREIGN KEY(group_id) REFERENCES groups(id),
         FOREIGN KEY(user_id) REFERENCES users(id),
         PRIMARY KEY(group_id, user_id))''')
-
-    # Check and add missing columns to users table
-    c.execute("PRAGMA table_info(users)")
-    columns = [col[1] for col in c.fetchall()]
-    if 'profile_pic' not in columns:
-        c.execute("ALTER TABLE users ADD COLUMN profile_pic TEXT")
-    if 'theme' not in columns:
-        c.execute("ALTER TABLE users ADD COLUMN theme TEXT DEFAULT 'light'")
-    if 'is_admin' not in columns:
-        c.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
-
     db.commit()
     db.close()
 
@@ -63,7 +55,7 @@ def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 def get_current_user():
-    user_id = request.get_cookie("user_id", secret=SECRET)
+    user_id = session.get('user_id')
     if not user_id:
         return None
     db = get_db()
@@ -73,20 +65,22 @@ def get_current_user():
     db.close()
     return user
 
-def admin_required(func):
-    def wrapper(*args, **kwargs):
+def admin_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
         user = get_current_user()
         if not user or not user['is_admin']:
-            redirect('/login')
-        return func(*args, **kwargs)
-    return wrapper
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # --- Routes ---
-@bottle_app.route('/')
+@app.route('/')
 def index():
     user = get_current_user()
     if not user:
-        return redirect('/login')
+        return redirect(url_for('login'))
     db = get_db()
     c = db.cursor()
     c.execute("SELECT id, username, profile_pic FROM users WHERE id != ?", (user['id'],))
@@ -94,15 +88,15 @@ def index():
     c.execute('''SELECT g.id, g.name FROM groups g JOIN group_members gm ON g.id = gm.group_id WHERE gm.user_id = ?''', (user['id'],))
     groups = c.fetchall()
     db.close()
-    return template('index', user=user, users=users, groups=groups)
+    return render_template('index.html', user=user, users=users, groups=groups)
 
-@bottle_app.route('/register', method=['GET', 'POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.forms.get('username').strip()
-        password = request.forms.get('password')
+        username = request.form.get('username').strip()
+        password = request.form.get('password')
         if not username or not password:
-            return template('register', error="Введите логин и пароль")
+            return render_template('register.html', error="Введите логин и пароль")
         db = get_db()
         c = db.cursor()
         try:
@@ -110,46 +104,45 @@ def register():
             db.commit()
         except sqlite3.IntegrityError:
             db.close()
-            return template('register', error="Логин занят")
+            return render_template('register.html', error="Логин занят")
         db.close()
-        redirect('/login')
-    return template('register', error=None)
+        return redirect(url_for('login'))
+    return render_template('register.html', error=None)
 
-@bottle_app.route('/login', method=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.forms.get('username').strip()
-        password = request.forms.get('password')
+        username = request.form.get('username').strip()
+        password = request.form.get('password')
         db = get_db()
         c = db.cursor()
         c.execute("SELECT * FROM users WHERE username = ?", (username,))
         user = c.fetchone()
         db.close()
         if user and hash_password(password) == user['password']:
-            response.set_cookie("user_id", str(user['id']), secret=SECRET, path='/')
-            redirect('/')
-        else:
-            return template('login', error="Неверный логин или пароль")
-    return template('login', error=None)
+            session['user_id'] = user['id']
+            return redirect(url_for('index'))
+        return render_template('login.html', error="Неверный логин или пароль")
+    return render_template('login.html', error=None)
 
-@bottle_app.route('/logout')
+@app.route('/logout')
 def logout():
-    response.delete_cookie("user_id", path='/')
-    redirect('/login')
+    session.pop('user_id', None)
+    return redirect(url_for('login'))
 
-@bottle_app.route('/settings', method=['GET', 'POST'])
+@app.route('/settings', methods=['GET', 'POST'])
 def settings():
     user = get_current_user()
     if not user:
-        redirect('/login')
+        return redirect(url_for('login'))
     if request.method == 'POST':
-        current_password = request.forms.get('current_password')
-        new_username = request.forms.get('username').strip()
-        new_password = request.forms.get('new_password')
+        current_password = request.form.get('current_password')
+        new_username = request.form.get('username').strip()
+        new_password = request.form.get('new_password')
         profile_pic = request.files.get('profile_pic')
-        theme = request.forms.get('theme')
+        theme = request.form.get('theme')
         if not current_password or hash_password(current_password) != user['password']:
-            return template('settings', user=user, error="Неверный текущий пароль")
+            return render_template('settings.html', user=user, error="Неверный текущий пароль")
         db = get_db()
         c = db.cursor()
         if new_username and new_username != user['username']:
@@ -158,13 +151,13 @@ def settings():
                 db.commit()
             except sqlite3.IntegrityError:
                 db.close()
-                return template('settings', user=user, error="Логин занят")
+                return render_template('settings.html', user=user, error="Логин занят")
         if new_password:
             c.execute("UPDATE users SET password = ? WHERE id = ?", (hash_password(new_password), user['id']))
             db.commit()
         if profile_pic:
             filename = secure_filename(profile_pic.filename)
-            filepath = os.path.join('static/uploads', filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             profile_pic.save(filepath)
             c.execute("UPDATE users SET profile_pic = ? WHERE id = ?", (filepath, user['id']))
             db.commit()
@@ -172,14 +165,14 @@ def settings():
             c.execute("UPDATE users SET theme = ? WHERE id = ?", (theme, user['id']))
             db.commit()
         db.close()
-        redirect('/settings')
-    return template('settings', user=user, error=None)
+        return redirect(url_for('settings'))
+    return render_template('settings.html', user=user, error=None)
 
-@bottle_app.route('/chat/<peer_id:int>', method=['GET', 'POST'])
+@app.route('/chat/<int:peer_id>', methods=['GET', 'POST'])
 def chat(peer_id):
     user = get_current_user()
     if not user:
-        redirect('/login')
+        return redirect(url_for('login'))
     if user['id'] == peer_id:
         return "Нельзя чатиться с самим собой!"
     db = get_db()
@@ -190,11 +183,11 @@ def chat(peer_id):
         db.close()
         return "Пользователь не найден"
     if request.method == 'POST':
-        content = request.forms.get('content').strip()
+        content = request.form.get('content').strip()
         file = request.files.get('file')
         if file:
             filename = secure_filename(file.filename)
-            filepath = os.path.join('static/uploads', filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             content = f"[Файл: {filename}]"
         if content:
@@ -204,18 +197,18 @@ def chat(peer_id):
               (user['id'], peer_id, peer_id, user['id']))
     messages = c.fetchall()
     db.close()
-    return template('chat', user=user, peer=peer, messages=messages)
+    return render_template('chat.html', user=user, peer=peer, messages=messages, chat_id=f"{min(user['id'], peer_id)}_{max(user['id'], peer_id)}")
 
-@bottle_app.route('/upload_voice', method='POST')
+@app.route('/upload_voice', methods=['POST'])
 def upload_voice():
     user = get_current_user()
     if not user:
         return {'success': False}
     voice_message = request.files.get('voice_message')
-    peer_id = request.forms.get('peer_id')
+    peer_id = request.form.get('peer_id')
     if voice_message and peer_id:
         filename = secure_filename(voice_message.filename)
-        filepath = os.path.join('static/uploads', filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         voice_message.save(filepath)
         db = get_db()
         c = db.cursor()
@@ -226,13 +219,13 @@ def upload_voice():
         return {'success': True}
     return {'success': False}
 
-@bottle_app.route('/create_group', method=['GET', 'POST'])
+@app.route('/create_group', methods=['GET', 'POST'])
 def create_group():
     user = get_current_user()
     if not user:
-        redirect('/login')
+        return redirect(url_for('login'))
     if request.method == 'POST':
-        group_name = request.forms.get('group_name').strip()
+        group_name = request.form.get('group_name').strip()
         if group_name:
             db = get_db()
             c = db.cursor()
@@ -241,14 +234,14 @@ def create_group():
             c.execute("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", (group_id, user['id']))
             db.commit()
             db.close()
-            redirect('/')
-    return template('create_group', user=user)
+            return redirect(url_for('index'))
+    return render_template('create_group.html', user=user)
 
-@bottle_app.route('/group/<group_id:int>', method=['GET', 'POST'])
+@app.route('/group/<int:group_id>', methods=['GET', 'POST'])
 def group(group_id):
     user = get_current_user()
     if not user:
-        redirect('/login')
+        return redirect(url_for('login'))
     db = get_db()
     c = db.cursor()
     c.execute("SELECT * FROM groups WHERE id = ?", (group_id,))
@@ -261,7 +254,7 @@ def group(group_id):
         db.close()
         return "Вы не являетесь участником этой группы"
     if request.method == 'POST':
-        member_username = request.forms.get('member_username').strip()
+        member_username = request.form.get('member_username').strip()
         c.execute("SELECT id FROM users WHERE username = ?", (member_username,))
         member = c.fetchone()
         if member:
@@ -270,13 +263,13 @@ def group(group_id):
     c.execute("SELECT u.id, u.username FROM users u JOIN group_members gm ON u.id = gm.user_id WHERE gm.group_id = ?", (group_id,))
     members = c.fetchall()
     db.close()
-    return template('group', user=user, group=group, members=members)
+    return render_template('group.html', user=user, group=group, members=members)
 
-@bottle_app.route('/chat/group/<group_id:int>', method=['GET', 'POST'])
+@app.route('/chat/group/<int:group_id>', methods=['GET', 'POST'])
 def chat_group(group_id):
     user = get_current_user()
     if not user:
-        redirect('/login')
+        return redirect(url_for('login'))
     db = get_db()
     c = db.cursor()
     c.execute("SELECT * FROM groups WHERE id = ?", (group_id,))
@@ -289,16 +282,16 @@ def chat_group(group_id):
         db.close()
         return "Вы не являетесь участником этой группы"
     if request.method == 'POST':
-        content = request.forms.get('content').strip()
+        content = request.form.get('content').strip()
         if content:
             c.execute("INSERT INTO messages (sender_id, group_id, content) VALUES (?, ?, ?)", (user['id'], group_id, content))
             db.commit()
     c.execute('''SELECT m.*, u.username FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.group_id = ? ORDER BY m.timestamp ASC''', (group_id,))
     messages = c.fetchall()
     db.close()
-    return template('chat_group', user=user, group=group, messages=messages)
+    return render_template('chat_group.html', user=user, group=group, messages=messages, chat_id=f"group_{group_id}")
 
-@bottle_app.route('/admin/users')
+@app.route('/admin/users')
 @admin_required
 def admin_users():
     db = get_db()
@@ -307,27 +300,27 @@ def admin_users():
     users = c.fetchall()
     db.close()
     user = get_current_user()
-    return template('admin_users', user=user, users=users)
+    return render_template('admin_users.html', user=user, users=users)
 
-@bottle_app.route('/static/<filename:path>')
+@app.route('/static/<filename:path>')
 def serve_static(filename):
-    return static_file(filename, root='./static')
+    return send_from_directory('static', filename)
 
 # --- Socket.IO Events ---
-@sio.event
-def connect(sid, environ):
+@socketio.on('connect')
+def handle_connect():
     print('Client connected')
 
-@sio.event
-def disconnect(sid):
+@socketio.on('disconnect')
+def handle_disconnect():
     print('Client disconnected')
 
-@sio.event
-def join_room(sid, data):
-    sio.enter_room(sid, data['room'])
+@socketio.on('join_room')
+def handle_join_room(data):
+    join_room(data['room'])
 
-@sio.event
-def send_message(sid, data):
+@socketio.on('send_message')
+def handle_send_message(data):
     room = data['room']
     message = data['message']
     sender_id = data['sender_id']
@@ -339,21 +332,11 @@ def send_message(sid, data):
         c.execute("INSERT INTO messages (sender_id, group_id, content) VALUES (?, ?, ?)", (sender_id, data['group_id'], message))
     db.commit()
     db.close()
-    sio.emit('receive_message', {'message': message, 'sender_id': sender_id}, room=room)
+    emit('receive_message', {'message': message, 'sender_id': sender_id}, room=room)
 
 # --- Initialize ---
 init_db()
-os.makedirs('static/uploads', exist_ok=True)
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Wrap Bottle app with Socket.IO
-app = socketio.WSGIApp(sio, bottle_app)
-
-# For WSGI deployment
-application = app
-
-# For local run
 if __name__ == '__main__':
-    from gevent import pywsgi
-    from geventwebsocket.handler import WebSocketHandler
-    server = pywsgi.WSGIServer(('0.0.0.0', 8080), app, handler_class=WebSocketHandler)
-    server.serve_forever()
+    socketio.run(app, host='0.0.0.0', port=8080)
