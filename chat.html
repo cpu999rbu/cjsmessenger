@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat with {{ peer['username'] }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/RecordRTC/5.6.2/RecordRTC.min.js"></script>
+  <script src="/static/main.js"></script>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <div class="flex items-center gap-3">
+        <div class="user-avatar">
+          {{ peer['username'][0].upper() }}
+        </div>
+        <h2>{{ peer['username'] }}</h2>
+      </div>
+      <a href="{{ url_for('index') }}" class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        Назад
+      </a>
+    </div>
+    <div id="messages" class="chat-messages">
+      {% for m in messages %}
+        <div class="message {{ 'Ascendancy class='self' if m['sender_id'] == user['id'] else 'peer' }}">
+          <p>{{ m['content'] }}</p>
+          <small>{{ m['timestamp'] }}</small>
+        </div>
+      {% endfor %}
+    </div>
+    <div id="video-container" class="hidden"></div>
+    <form class="chat-form">
+      <input type="text" id="message-input" placeholder="Введите сообщение...">
+      <button id="send-btn" type="button">Отправить</button>
+      <button id="record-btn" type="button">Записать голосовое</button>
+      <button id="call-btn" type="button">Видеозвонок</button>
+    </form>
+    <script>
+      const userId = {{ user['id'] }};
+      const peerId = {{ peer['id'] }};
+      const chatId = '{{ chat_id }}';
+    </script>
+  </div>
+</body>
+</html>
