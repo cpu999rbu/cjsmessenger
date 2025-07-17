@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Настройки</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Настройки аккаунта</h2>
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="POST" enctype="multipart/form-data">
+      <div class="input-group">
+        <label for="current_password">Текущий пароль</label>
+        <input type="password" name="current_password" id="current_password" required>
+      </div>
+      <div class="input-group">
+        <label for="username">Новый логин</label>
+        <input type="text" name="username" id="username" value="{{ user['username'] }}">
+      </div>
+      <div class="input-group">
+        <label for="new_password">Новый пароль</label>
+        <input type="password" name="new_password" id="new_password">
+      </div>
+      <div class="input-group">
+        <label for="profile_pic">Фото профиля</label>
+        <input type="file" name="profile_pic" id="profile_pic" accept="image/*">
+      </div>
+      <div class="input-group">
+        <label for="theme">Тема</label>
+        <select name="theme" id="theme">
+          <option value="light" {% if user['theme'] == 'light' %}selected{% endif %}>Светлая</option>
+          <option value="dark" {% if user['theme'] == 'dark' %}selected{% endif %}>Темная</option>
+        </select>
+      </div>
+      <input type="submit" value="Сохранить">
+    </form>
+    <a href="{{ url_for('index') }}">Назад</a>
+  </div>
+</body>
+</html>
