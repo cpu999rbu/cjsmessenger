@@ -1,25 +1,25 @@
 :root {
-  --primary: #4A6CF7;
-  --primary-hover: #3A5Bf0;
-  --secondary: #64748B;
-  --text: #1C2128;
-  --text-light: #64748B;
-  --background: #F5F7FA;
-  --card-bg: #FFFFFF;
-  --border: #E3E6EA;
-  --success: #10B981;
-  --error: #EF4444;
-  --self-message: #4A6CF7;
-  --peer-message: #EFF2F5;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  --shadow-hover: 0 6px 24px rgba(0, 0, 0, 0.12);
+  --primary: #0088CC; /* Telegram's signature blue */
+  --primary-hover: #0077B5;
+  --secondary: #8696A0; /* Muted gray for secondary elements */
+  --text: #000000; /* Black for main text */
+  --text-light: #8696A0; /* Light gray for secondary text */
+  --background: #F0F2F5; /* Telegram's light gray background */
+  --card-bg: #FFFFFF; /* White for cards and chat containers */
+  --border: #D7DADC; /* Light border color */
+  --success: #00C897; /* Green for success messages */
+  --error: #FF3B30; /* Red for errors */
+  --self-message: #0088CC; /* Blue for sent messages */
+  --peer-message: #FFFFFF; /* White for received messages */
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body {
@@ -28,20 +28,20 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 16px;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .container {
   background: var(--card-bg);
-  border-radius: 16px;
+  border-radius: 12px;
   width: 100%;
-  max-width: 480px;
-  padding: 32px;
+  max-width: 400px; /* Narrower for Telegram's compact feel */
+  padding: 24px;
   box-shadow: var(--shadow);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: box-shadow 0.2s ease;
 }
 
 .container:hover {
@@ -49,16 +49,16 @@ body {
 }
 
 h2 {
-  font-weight: 700;
-  font-size: 1.75rem;
-  margin-bottom: 24px;
+  font-weight: 500;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
   color: var(--text);
 }
 
 h3 {
-  font-weight: 600;
-  font-size: 1.25rem;
-  margin-bottom: 16px;
+  font-weight: 500;
+  font-size: 1.1rem;
+  margin-bottom: 12px;
   color: var(--text);
 }
 
@@ -67,27 +67,29 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 28px;
-  padding-bottom: 16px;
+  padding: 16px 20px;
+  background: var(--card-bg);
   border-bottom: 1px solid var(--border);
 }
 
 header h2 {
   margin-bottom: 0;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
+  font-weight: 500;
 }
 
 /* Navigation */
 nav {
   display: flex;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* Links */
 a {
   color: var(--primary);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.95rem;
   transition: color 0.2s ease;
   display: inline-flex;
   align-items: center;
@@ -103,45 +105,47 @@ a.logout {
 }
 
 a.logout:hover {
-  color: #DC2626;
+  color: #D93025;
 }
 
 /* Forms */
 form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 label {
-  font-weight: 500;
-  font-size: 0.9rem;
+  font-weight: 400;
+  font-size: 0.85rem;
   color: var(--text-light);
 }
 
 input[type="text"],
 input[type="password"],
-textarea {
-  padding: 14px 18px;
-  border-radius: 12px;
-  border: 1.8px solid var(--border);
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  background-color: #FAFAFA;
+textarea,
+select {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  background-color: #F9FAFB;
   color: var(--text);
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
+  box-shadow: 0 0 0 2px rgba(0, 136, 204, 0.2);
   background-color: #FFFFFF;
 }
 
@@ -149,29 +153,29 @@ button,
 input[type="submit"] {
   background-color: var(--primary);
   color: white;
-  padding: 14px 0;
-  font-weight: 600;
-  font-size: 1rem;
+  padding: 12px 0;
+  font-weight: 500;
+  font-size: 0.95rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 button:hover,
 input[type="submit"]:hover {
   background-color: var(--primary-hover);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 /* User List */
 .user-list {
   list-style: none;
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--border);
-  background: #F8FAFC;
+  background: var(--card-bg);
 }
 
 .user-list li {
@@ -187,26 +191,28 @@ input[type="submit"]:hover {
 .user-list li a {
   display: flex;
   align-items: center;
-  padding: 14px 20px;
+  padding: 12px 16px;
   color: var(--text);
-  font-weight: 500;
-  gap: 12px;
+  font-weight: 400;
+  font-size: 0.95rem;
+  gap: 10px;
 }
 
 .user-list li:hover {
-  background-color: #EDF2FF;
+  background-color: #F1F3F5;
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--primary);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 1rem;
   flex-shrink: 0;
 }
 
@@ -214,9 +220,9 @@ input[type="submit"]:hover {
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: 70vh;
-  max-height: 700px;
-  border-radius: 16px;
+  height: 80vh; /* Taller for Telegram-like chat */
+  max-height: 800px;
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: var(--shadow);
   background: var(--card-bg);
@@ -226,7 +232,7 @@ input[type="submit"]:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 14px 16px;
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
   z-index: 10;
@@ -234,27 +240,27 @@ input[type="submit"]:hover {
 
 .chat-messages {
   flex-grow: 1;
-  padding: 24px;
+  padding: 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  background: #F8FAFC;
+  gap: 8px;
+  background: var(--background);
 }
 
 .message {
-  max-width: 75%;
-  padding: 14px 20px;
-  border-radius: 18px;
-  font-size: 1rem;
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.95rem;
   position: relative;
-  animation: fadeIn 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  line-height: 1.5;
+  animation: fadeIn 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  line-height: 1.4;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -262,62 +268,63 @@ input[type="submit"]:hover {
   align-self: flex-end;
   background: var(--self-message);
   color: white;
-  border-bottom-right-radius: 6px;
+  border-bottom-right-radius: 4px;
 }
 
 .message.peer {
   align-self: flex-start;
   background: var(--peer-message);
   color: var(--text);
-  border-bottom-left-radius: 6px;
+  border-bottom-left-radius: 4px;
 }
 
 .message small {
   display: block;
-  margin-top: 6px;
-  font-size: 0.75rem;
-  opacity: 0.8;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  opacity: 0.7;
   text-align: right;
 }
 
 .chat-form {
   display: flex;
-  gap: 12px;
-  padding: 18px 24px;
+  gap: 8px;
+  padding: 12px 16px;
   background: var(--card-bg);
   border-top: 1px solid var(--border);
 }
 
 .chat-form input {
   flex-grow: 1;
-  padding: 14px 18px;
-  border-radius: 12px;
-  border: 1.8px solid var(--border);
+  padding: 10px 14px;
+  border-radius: 20px; /* Rounded like Telegram’s input */
+  border: 1px solid var(--border);
 }
 
 .chat-form button {
-  width: 120px;
-  padding: 14px;
-  border-radius: 12px;
+  width: auto;
+  padding: 10px 20px;
+  border-radius: 20px;
 }
 
 /* Utility */
 .error {
-  background: #FEF2F2;
+  background: #FFF1F0;
   color: var(--error);
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-radius: 8px;
-  margin-bottom: 20px;
-  font-weight: 500;
-  border-left: 4px solid var(--error);
+  margin-bottom: 16px;
+  font-weight: 400;
+  font-size: 0.9rem;
+  border-left: 3px solid var(--error);
 }
 
 .divider {
   text-align: center;
   position: relative;
-  margin: 20px 0;
+  margin: 16px 0;
   color: var(--text-light);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .divider::before {
@@ -335,25 +342,52 @@ input[type="submit"]:hover {
   position: relative;
   z-index: 2;
   background: var(--card-bg);
-  padding: 0 12px;
+  padding: 0 10px;
+}
+
+/* Admin Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+th {
+  font-weight: 500;
+  color: var(--text-light);
+}
+
+td a {
+  margin-right: 10px;
 }
 
 /* Responsive */
 @media (max-width: 600px) {
   .container {
-    padding: 24px;
-    border-radius: 12px;
+    padding: 16px;
+    border-radius: 8px;
   }
-  
+
   .chat-container {
-    height: 85vh;
+    height: 90vh;
   }
-  
+
   .message {
-    max-width: 85%;
+    max-width: 80%;
   }
-  
+
   body {
-    padding: 12px;
+    padding: 8px;
+  }
+
+  .chat-form button {
+    padding: 10px 16px;
   }
 }
