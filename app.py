@@ -302,7 +302,7 @@ def admin_users():
     user = get_current_user()
     return render_template('admin_users.html', user=user, users=users)
 
-@app.route('/static/<filename:path>')
+@app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory('static', filename)
 
