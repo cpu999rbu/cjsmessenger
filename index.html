@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Главная</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h2>Привет, {{ user['username'] }}!</h2>
+      <nav>
+        <a href="{{ url_for('settings') }}" class="flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5a5 5 0 000 10h5a5 5 0 000-10H10z"></path></svg>
+          Настройки
+        </a>
+        <a href="{{ url_for('logout') }}" class="logout flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m-4 4H5"></path></svg>
+          Выйти
+        </a>
+      </nav>
+    </header>
+    <h3>Пользователи</h3>
+    <ul class="user-list">
+      {% for u in users %}
+        <li>
+          <a href="{{ url_for('chat', peer_id=u['id']) }}" class="flex items-center gap-3">
+            {% if u['profile_pic'] %}
+              <img src="/{{ u['profile_pic'] }}" alt="Avatar" class="user-avatar">
+            {% else %}
+              <div class="user-avatar">{{ u['username'][0].upper() }}</div>
+            {% endif %}
+            <span>{{ u['username'] }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+    <h3>Групповые чаты</h3>
+    <ul class="user-list">
+      {% for g in groups %}
+        <li>
+          <a href="{{ url_for('chat_group', group_id=g['id']) }}">{{ g['name'] }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+    <a href="{{ url_for('create_group') }}">Создать группу</a>
+  </div>
+</body>
+</html>
