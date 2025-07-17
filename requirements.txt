@@ -1,5 +1,5 @@
 bottle==0.12.23
-bottle-sessions==0.6.0
+bottle-session==0.6.0
 bcrypt==4.0.1
 gevent==23.7.0
 gevent-websocket==0.10.1
